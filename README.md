@@ -1,7 +1,9 @@
+cat << 'EOF' > README.md
 # 🕵️‍♂️ WXD Proxy Hunter (Residential & Elite Proxy Finder)
 
-**WXD Proxy Hunter** adalah bot pencari proxy otomatis berkecepatan tinggi yang dirancang khusus untuk memisahkan proxy kualitas premium (**Residential ISP**) dari proxy server biasa (**Datacenter**).
-Bot ini dibangun dengan arsitektur **Asynchronous (AsyncIO)** dan **Docker**, berjalan sangat ringan, dan memiliki fitur **Hybrid Mode** (bisa berjalan dengan atau tanpa Telegram).
+**WXD Proxy Hunter** is a high-speed automatic proxy search bot designed specifically to find HIGH ANONYMITY (ELITE) proxies and separate premium quality proxies (**Residential ISP**) from standard server proxies (**Datacenter**).
+
+Built with **Asynchronous (AsyncIO)** architecture and **Docker**, this bot runs very lightly and features a **Hybrid Mode** (operates with or without Telegram).
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)
@@ -10,102 +12,102 @@ Bot ini dibangun dengan arsitektur **Asynchronous (AsyncIO)** dan **Docker**, be
 
 ---
 
-## 🔥 Fitur Unggulan
+## 🔥 Key Features
 
-* ✅ **Smart Residential Filter:** Memisahkan proxy ISP Rumahan (Indihome, Verizon, Comcast) yang tahan blokir dari proxy VPS/Datacenter.
-* ✅ **Hybrid / Headless Mode:** Bot otomatis berjalan di terminal (CLI) jika Token Telegram kosong atau API down. Anti-Crash!
-* ✅ **Resource Limiting:** Aman dijalankan dengan spesifikasi rendah karena bisa di setel manual sesuai keinginan (default: Max 1 CPU 50%, RAM 512MB).
-* ✅ **Auto-Deduplication:** Proxy yang sudah ada di database tidak akan dicek ulang ke API ISP (Hemat Kuota).
-* ✅ **SQLite WAL Mode:** Database super cepat, anti-lock saat ribuan data masuk bersamaan.
+* ✅ **Smart Residential Filter:** Separates block-resistant Home ISP proxies (Indihome, Verizon, Comcast) from VPS/Datacenter proxies.
+* ✅ **Hybrid / Headless Mode:** The bot automatically runs in the terminal (CLI) if the Telegram Token is empty or the API is down. Anti-Crash!
+* ✅ **Resource Limiting:** Safe to run on low-spec hardware as it can be manually tuned (Default: Max 1 CPU 50%, RAM 512MB).
+* ✅ **Auto-Deduplication:** Proxies already in the database will not be re-checked against the ISP API (Saves Quota).
+* ✅ **SQLite WAL Mode:** Super fast database, anti-lock when thousands of data entries arrive simultaneously.
 
 ---
 
-## 🛠️ Instalasi & Setup
+## 🛠️ Installation & Setup
 
-Ikuti langkah-langkah ini satu per satu di terminal.
+Follow these steps one by one in your terminal.
 
 ### 1. Download Repository
-Ambil kode terbaru dari GitHub:
+Get the latest code from GitHub:
 
     git clone https://github.com/widodoxd/WXD-PROXY-HUNTER.git
     cd WXD-PROXY-HUNTER
 
-### 2. Buat Konfigurasi
-Copy file contoh konfigurasi menjadi file konfigurasi aktif:
+### 2. Create Configuration
+Copy the example configuration file to the active configuration file:
 
     cp config.example.py config.py
 
-Edit file tersebut menggunakan nano:
+Edit the file using nano:
 
     nano config.py
-    
-Panduan Edit:
-* BOT_TOKEN: Isi dengan token dari BotFather. (Kosongkan jika ingin mode tanpa Telegram).
-* ALLOWED_USER_ID: Isi dengan ID Telegram Anda (agar bot private).
-* Tekan Ctrl+O lalu Enter untuk Simpan, dan Ctrl+X untuk Keluar.
 
-### 3. Jalankan Bot
-Perintah ini akan membangun sistem (build) dan menjalankannya di background:
+**Editing Guide:**
+* `BOT_TOKEN`: Fill with the token from BotFather. (Leave empty if you want Telegram-less mode).
+* `ALLOWED_USER_ID`: Fill with your Telegram ID (to keep the bot private).
+* Press `Ctrl+O` then `Enter` to Save, and `Ctrl+X` to Exit.
+
+### 3. Run the Bot
+This command will build the system and run it in the background:
 
     docker compose up -d --build
 
-### 4. Cek Status
-Pastikan bot sudah berjalan normal dengan melihat log:
+### 4. Check Status
+Ensure the bot is running normally by checking the logs:
 
     docker compose logs -f
 
-    (Tekan Ctrl + C pada keyboard untuk keluar dari tampilan log)
+    (Press Ctrl + C on your keyboard to exit the log view)
 
 ---
 
-## 🎮 Cara Penggunaan
+## 🎮 Usage
 
-### A. Mode Telegram (GUI)
-Jika Token Bot diisi, kirim perintah /start di Telegram. Panel berikut akan muncul:
+### A. Telegram Mode (GUI)
+If the Bot Token is filled, send the `/start` command in Telegram. The following panel will appear:
 
-| Tombol Menu         | Fungsi                                                        |
+| Menu Button         | Function                                                      |
 |---------------------|---------------------------------------------------------------|
-| ▶️ START SCAN       | Memulai siklus pencarian proxy secara otomatis (Looping).     |
-| 🛑 STOP             | Menghentikan proses pencarian.                                |
-| 📄 LOG              | Cek status live bot dan statistik database terkini.           |
-| 💾 DB Stats         | Melihat jumlah total proxy dan jumlah proxy Residential.      |
-| 📥 RESIDENTIAL ONLY | 💎 Premium: Download file .txt khusus proxy ISP Rumahan.      |
-| 📥 ALL (IP:PORT)    | Download semua proxy aktif format 1.1.1.1:8080.               |
-| 🏳️ SET REGION       | Filter pencarian hanya negara tertentu (Contoh: ID, US, SG).  |
+| ▶️ START SCAN       | Start automatic proxy search cycle (Looping).                 |
+| 🛑 STOP             | Stop the search process.                                      |
+| 📄 LOG              | Check live bot status and current database statistics.        |
+| 💾 DB Stats         | View total proxy count and Residential proxy count.           |
+| 📥 RESIDENTIAL ONLY | 💎 Premium: Download .txt file specifically for Home ISP.     |
+| 📥 ALL (IP:PORT)    | Download all active proxies in 1.1.1.1:8080 format.           |
+| 🏳️ SET REGION       | Filter search for specific countries only (e.g., ID, US, SG). |
 
-### B. Mode Server (CLI / Headless)
-Jika Token Telegram kosong atau salah, bot akan otomatis masuk ke Mode Hantu:
-1. Bot mendeteksi ketiadaan token.
-2. Notifikasi Telegram dimatikan.
-3. Proses mining tetap berjalan normal di background Terminal/CLI.
-4. Hasil tetap disimpan ke Database dan File .txt.
-
----
-
-## 📂 Lokasi File Output
-
-Bot akan menyimpan hasil "buruan" secara otomatis di dalam folder project di VPS Anda:
-
-* 📂 proxy_residential.txt  👉 List Premium (ISP Rumahan Only).
-* 📂 proxy_active.txt       👉 Semua proxy aktif (Campur).
-* 📂 type_proxy_active.txt  👉 Format URI (socks5://user:pass@ip:port).
-* 📂 proxies.db             👉 Database utama SQLite.
+### B. Server Mode (CLI / Headless)
+If the Telegram Token is empty or invalid, the bot will automatically enter **Ghost Mode**:
+1. Bot detects the absence of a token.
+2. Telegram notifications are disabled.
+3. The mining process continues normally in the background Terminal/CLI.
+4. Results are still saved to the Database and .txt files.
 
 ---
 
-## ⚙️ Perintah Admin VPS
+## 📂 Output File Locations
 
-Simpan perintah-perintah berguna ini:
+The bot will automatically save the "hunt" results inside the project folder on your VPS:
 
-**Mematikan Bot:**
+* 📂 `proxy_residential.txt`  👉 Premium List (ISP/Home Only).
+* 📂 `proxy_active.txt`       👉 All active proxies (Mixed).
+* 📂 `type_proxy_active.txt`  👉 URI Format (socks5://user:pass@ip:port).
+* 📂 `proxies.db`             👉 Main SQLite Database.
+
+---
+
+## ⚙️ VPS Admin Commands
+
+Save these useful commands:
+
+**Stop the Bot:**
 
     docker compose down
 
-**Restart Bot (Refresh Cepat):**
+**Restart Bot (Fast Refresh):**
 
     docker compose restart
 
-**Update Bot (Jika ada fitur baru):**
+**Update Bot (If there are new features):**
 
     git pull
     docker compose up -d --build
@@ -113,8 +115,8 @@ Simpan perintah-perintah berguna ini:
 ---
 
 ## ⚠️ Disclaimer
-Project ini dibuat untuk tujuan Edukasi, Riset Keamanan, dan Testing Jaringan.
-Penggunaan proxy hasil scanning untuk aktivitas ilegal adalah tanggung jawab pengguna sepenuhnya. Gunakan dengan bijak.
+This project is created for **Education, Security Research, and Network Testing** purposes.
+Using scanned proxies for illegal activities is entirely the user's responsibility. Use wisely.
 
 ---
 
