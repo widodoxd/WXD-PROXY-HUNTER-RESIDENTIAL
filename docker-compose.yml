@@ -19,8 +19,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.80'     # Maksimal pakai 80% dari 1 Core CPU
-          memory: 4G     # Maksimal pakai 4GB
+          cpus: '0.50'     # ContohMaksimal pakai 50% dari 1 Core CPU
+          memory: 512M     # Sesuaikan Spefikikasi memory milikmu
         reservations:
           cpus: '0.10'     # Garansi minimal 10% CPU
           memory: 128M     # Garansi minimal 128MB RAM
@@ -30,5 +30,5 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"    # Maksimal 1 file log = 10MB
+        max-size: "10M"    # Maksimal 1 file log = 10MB
         max-file: "3"      # Maksimal simpan 3 file log terakhir

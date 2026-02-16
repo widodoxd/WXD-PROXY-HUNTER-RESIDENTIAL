@@ -13,11 +13,11 @@ from modules.geoip import get_geoip_data
 from modules.scraper import get_proxies
 from modules.checker import check_proxies_async
 
-# Import Telegram (Try-Except tidak diperlukan di import level, tapi di inisialisasi)
+# Import Telegram
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, Bot
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, Application
 from telegram.request import HTTPXRequest 
-from telegram.error import InvalidToken, Unauthorized
+from telegram.error import InvalidToken, TelegramError
 
 setup_logging()
 
@@ -32,20 +32,21 @@ def set_status(text: str):
     global live_status_log
     timestamp = time.strftime("%H:%M:%S")
     live_status_log = f"🕒 **Last Update: {timestamp}**\n{text}"
-    # Print ke console agar terlihat di log VPS (Mode CLI)
     print(f"[*] {text}", flush=True)
 
-# --- KEYBOARDS (Hanya dipakai jika Telegram Aktif) ---
+# --- KEYBOARDS ---
 def get_main_menu():
     try: db_stats = get_db_stats()
     except: db_stats = "0"
-    icon_anon = "🛡️" if active_anon == "HIA" else ("🔓" if active_anon == "ALL" else "🕵️")
+    
     lbl_region = f"🏳️ SET REGION: {active_region}" 
     lbl_anon = f"⚙️ SET ANON: {active_anon}"
+    
     keyboard = [
         [KeyboardButton(f"💾 DB: {db_stats}"), KeyboardButton("📄 LOG")],
         [KeyboardButton("📥 ALL (IP:PORT)"), KeyboardButton("📥 ALL (URI)")],
-        [KeyboardButton("📥 RESIDENTIAL ONLY (Premium) 🏠")],
+        # TOMBOL BARU: TERPISAH
+        [KeyboardButton("📥 RES (IP:PORT) 🏠"), KeyboardButton("📥 RES (URI) 🏠")],
         [KeyboardButton(lbl_region), KeyboardButton(lbl_anon)],
         [KeyboardButton("▶️ START SCAN"), KeyboardButton("🛑 STOP")]
     ]
@@ -71,12 +72,10 @@ def get_anon_menu():
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
 # --- CORE LOGIC (HYBRID) ---
-# Parameter bot_instance dan chat_id dibuat OPTIONAL (None)
 async def background_scan_task(bot_instance: Bot = None, chat_id: int = None):
     global is_running
     is_running = True
     
-    # Init DB saat task mulai
     init_db()
     
     print("🚀 PROXY HUNTER STARTED...", flush=True)
@@ -99,10 +98,16 @@ async def background_scan_task(bot_instance: Bot = None, chat_id: int = None):
                 def on_gold_found(result):
                     p = result['data']
                     gold_alive.append(p['ip'])
+                    
+                    flag, country_name, country_code = get_geoip_data(p['ip'])
+                    p['region'] = country_code
+                    
                     save_proxy_to_db(p)
                     cycle_proxies_data.append(p)
-                    # Log CLI
-                    print(f"[+] GOLD ALIVE: {p['ip']}", flush=True)
+                    
+                    uri = f"{p['type'].lower()}://{p['ip']}"
+                    cat = p.get('category', 'UNK')
+                    print(f"[+] GOLD ALIVE: {uri} -> {country_name} ({cat})", flush=True)
 
                 await check_proxies_async(db_proxies, on_gold_found)
                 
@@ -129,7 +134,6 @@ async def background_scan_task(bot_instance: Bot = None, chat_id: int = None):
             if filtered_proxies:
                 new_found_count = 0
                 
-                # Wrapper untuk kirim pesan Telegram AMAN
                 async def send_telegram_msg(txt, use_markup=False):
                     if bot_instance and chat_id:
                         try: 
@@ -153,20 +157,19 @@ async def background_scan_task(bot_instance: Bot = None, chat_id: int = None):
                     
                     isp_info = p.get('isp', 'Unknown ISP')
                     category = p.get('category', 'UNKNOWN')
-                    cat_icon = "🏠" if category == "RESIDENTIAL" else "🏢"
-                    
-                    # LOG CLI (Selalu print)
-                    print(f"[+] NEW: {p['ip']} -> {name} ({category}) | {isp_info}", flush=True)
                     
                     save_proxy_to_db(p)
                     cycle_proxies_data.append(p)
+                    
+                    uri = f"{p['type'].lower()}://{p['ip']}"
+                    print(f"[+] NEW: {uri} -> {name} ({category})", flush=True)
 
-                    # NOTIF TELEGRAM (Hanya jika bot ada)
+                    cat_icon = "🏠" if category == "RESIDENTIAL" else "🏢"
                     type_icon = "🛡️" if "SOCKS" in p['type'].upper() else "🌐"
                     msg = (
                         f"🚀 **LIVE PROXY!**\n\n"
                         f"{flag} Region: **{name}**\n"
-                        f"📡 IP: `{p['ip']}`\n"
+                        f"📡 URI: `{uri}`\n"
                         f"{type_icon} Type: **{p['type'].upper()}**\n"
                         f"🏢 ISP: **{isp_info}**\n" 
                         f"{cat_icon} Cat: **{category}**\n"
@@ -204,7 +207,6 @@ async def background_scan_task(bot_instance: Bot = None, chat_id: int = None):
 # --- TELEGRAM HANDLERS ---
 async def post_init(application: Application):
     global current_task
-    # Cek apakah task sudah jalan (dari main), kalau belum, jalankan via Telegram
     if current_task is None or current_task.done():
         current_task = asyncio.create_task(background_scan_task(application.bot, ALLOWED_USER_ID))
     
@@ -237,6 +239,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if text == "🔙 KEMBALI": await context.bot.send_message(chat_id, "🔙 Menu", reply_markup=get_main_menu()); return
 
+        # --- HANDLERS DOWNLOAD ---
         if text == "📥 ALL (IP:PORT)":
             if os.path.exists("proxy_active.txt"):
                 await context.bot.send_document(chat_id, open("proxy_active.txt", "rb"), caption="📄 **Semua Proxy (IP:PORT)**", parse_mode='Markdown')
@@ -249,6 +252,65 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else: await context.bot.send_message(chat_id, "⚠️ File belum siap.")
             return
             
-        if "RESIDENTIAL" in text:
+        # TOMBOL BARU: RESIDENTIAL IP:PORT
+        if text == "📥 RES (IP:PORT) 🏠":
             if os.path.exists("proxy_residential.txt"):
-                await context.
+                await context.bot.send_document(chat_id, open("proxy_residential.txt", "rb"), caption="🏠 **Residential (IP:PORT)**", parse_mode='Markdown')
+            else: await context.bot.send_message(chat_id, "⚠️ Belum ada file Residential (IP:PORT).")
+            return
+
+        # TOMBOL BARU: RESIDENTIAL URI
+        if text == "📥 RES (URI) 🏠":
+            if os.path.exists("type_proxy_residential.txt"):
+                await context.bot.send_document(chat_id, open("type_proxy_residential.txt", "rb"), caption="🏠🔗 **Residential (URI)**", parse_mode='Markdown')
+            else: await context.bot.send_message(chat_id, "⚠️ Belum ada file Residential (URI).")
+            return
+
+        if "LOG" in text or "CEK STATUS" in text: 
+            await context.bot.send_message(chat_id, f"📊 **LIVE LOG**\n\n{live_status_log}", reply_markup=get_main_menu(), parse_mode='Markdown'); return
+        
+        if text == "▶️ START SCAN":
+            if not is_running:
+                is_running = True
+                if current_task and not current_task.done(): current_task.cancel()
+                current_task = asyncio.create_task(background_scan_task(context.bot, chat_id))
+                await context.bot.send_message(chat_id, f"🚀 **Scan Dimulai!**")
+            else: await context.bot.send_message(chat_id, "⚠️ Sedang berjalan."); return
+        if text == "🛑 STOP":
+            if is_running:
+                is_running = False
+                if current_task: current_task.cancel()
+                set_status("🛑 Berhenti.")
+                await context.bot.send_message(chat_id, "🛑 **Bot Berhenti.**", reply_markup=get_main_menu())
+            return
+    except Exception as e: print(f"[!] Handler Error: {e}")
+
+# --- MAIN ENTRY POINT ---
+def run_cli_mode():
+    print("--- [!] TELEGRAM TOKEN INVALID/MISSING ---")
+    print("--- [!] SWITCHING TO HEADLESS MODE (CLI ONLY) ---")
+    try:
+        asyncio.run(background_scan_task(None, None))
+    except KeyboardInterrupt:
+        print("\n[!] Bot Stopped by User")
+
+def run_telegram_mode():
+    try:
+        trequest = HTTPXRequest(connection_pool_size=20, connect_timeout=30.0, read_timeout=30.0)
+        app = ApplicationBuilder().token(BOT_TOKEN).request(trequest).post_init(post_init).build()
+        app.add_handler(CommandHandler('start', start))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+        print("[-] SYSTEM: Telegram Polling Started...", flush=True)
+        app.run_polling()
+    except (InvalidToken, TelegramError, ValueError) as e:
+        print(f"[!] Gagal Login Telegram: {e}")
+        run_cli_mode()
+    except Exception as e:
+        print(f"[!] Critical Error: {e}")
+        run_cli_mode()
+
+if __name__ == '__main__':
+    if not BOT_TOKEN or "123456" in BOT_TOKEN or len(BOT_TOKEN) < 20:
+        run_cli_mode()
+    else:
+        run_telegram_mode()
