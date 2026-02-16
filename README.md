@@ -39,10 +39,10 @@ Edit file tersebut menggunakan nano:
 
     nano config.py
     
-    Panduan Edit:
-    * BOT_TOKEN: Isi dengan token dari BotFather. (Kosongkan jika ingin mode tanpa Telegram).
-    * ALLOWED_USER_ID: Isi dengan ID Telegram Anda (agar bot private).
-    * Tekan Ctrl+O lalu Enter untuk Simpan, dan Ctrl+X untuk Keluar.
+Panduan Edit:
+* BOT_TOKEN: Isi dengan token dari BotFather. (Kosongkan jika ingin mode tanpa Telegram).
+* ALLOWED_USER_ID: Isi dengan ID Telegram Anda (agar bot private).
+* Tekan Ctrl+O lalu Enter untuk Simpan, dan Ctrl+X untuk Keluar.
 
 ### 3. Jalankan Bot
 Perintah ini akan membangun sistem (build) dan menjalankannya di background:
